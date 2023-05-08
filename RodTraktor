@@ -1,0 +1,190 @@
+//C++
+#define NOTE_F3  175
+#define NOTE_G3  196
+#define NOTE_B3  247
+#define NOTE_A3  220
+#define NOTE_AS3 233
+#define NOTE_B3  247
+#define NOTE_C4  262
+#define NOTE_D4  294
+#define NOTE_E4  330
+#define NOTE_F4  349
+#define NOTE_G4  392
+#define NOTE_B4  494
+#define NOTE_A4  440
+#define NOTE_AS4 466
+#define NOTE_AS4 466
+#define NOTE_B4  494
+#define NOTE_C5  523
+#define NOTE_CS5 554
+#define NOTE_D5  587
+#define NOTE_E5  659
+#define NOTE_F5  698
+#define NOTE_FS5 740
+#define NOTE_G5  784
+#define NOTE_GS5 831
+#define NOTE_A5  880
+#define NOTE_AS5 932
+#define NOTE_B5  988
+#define NOTE_C6  1047
+#define NOTE_CS6 1109
+#define NOTE_D6  1175
+#define NOTE_DS6 1245
+#define NOTE_E6  1319
+#define NOTE_F6  1397
+#define NOTE_FS6 1480
+#define NOTE_G6  1568
+#define NOTE_GS6 1661
+#define NOTE_A6  1760
+#define NOTE_AS6 1865
+#define NOTE_B6  1976
+#define NOTE_C7  2093
+#define NOTE_CS7 2217
+#define NOTE_D7  2349
+#define NOTE_DS7 2489
+#define NOTE_E7  2637
+#define NOTE_F7  2794
+#define NOTE_FS7 2960
+#define NOTE_G7  3136
+#define NOTE_GS7 3322
+#define NOTE_A7  3520
+#define NOTE_AS7 3729
+#define NOTE_B7  3951
+#define NOTE_C8  4186
+
+int ANTALL_NOTER = 41;
+
+// notes in the melody:
+int melody[] = {
+  //NOTE_C4, NOTE_F4, NOTE_G4, NOTE_C4, NOTE_F4, NOTE_G4,
+  //NOTE_D4, NOTE_AS4, NOTE_A4, NOTE_D4, NOTE_AS4, NOTE_A4,
+  NOTE_G4,NOTE_F4,NOTE_G4,NOTE_C5,
+    NOTE_G4,NOTE_F4,NOTE_G4,NOTE_C5,
+  NOTE_A4, NOTE_G4, NOTE_A4, NOTE_D5,
+  	NOTE_A4, NOTE_G4, NOTE_A4, NOTE_D5,
+  
+  NOTE_G4,NOTE_F4,NOTE_G4,NOTE_C5,
+    NOTE_G4,NOTE_F4,NOTE_G4,NOTE_C5,
+  NOTE_A4, NOTE_G4, NOTE_A4, NOTE_D5,
+  	NOTE_A4, NOTE_G4, NOTE_A4, NOTE_D5,
+  
+  NOTE_C5, NOTE_A4, NOTE_G4, NOTE_A4, NOTE_G4, NOTE_F4,
+  NOTE_C5, NOTE_D5, NOTE_F5
+  
+};
+
+// note durations: 4 = quarter note, 8 = eighth note, etc.:
+int noteDurations[] = {
+  4, 6, 4, 2,
+  4, 6, 4, 2,
+  4, 6, 4, 2,
+  4, 6, 4, 2,
+  4, 6, 4, 2,
+  4, 6, 4, 2,
+  4, 6, 4, 2,
+  4, 6, 4, 2,
+  4, 6, 4, 6, 4, 2,
+  8, 12, 2
+};
+
+// Sensorer - vann
+int moisture = 0;
+int TOERRTERSKEL;
+int VAATTERSKEL = 800;
+int LYDTERSKEL = 500;
+int UTPUTVERDI = 500;
+int SENSORVERDI = 0;
+bool lydPaa = false;
+
+void setup()
+{
+  pinMode(A0, OUTPUT);
+  pinMode(A1, INPUT);
+  
+  //Switch
+  pinMode(A2, INPUT);
+  
+  //Switch rotering
+  pinMode(A3, INPUT);
+  
+  pinMode(6,OUTPUT);
+  //Lydutgang
+  pinMode(7, OUTPUT);
+  
+  Serial.begin(9600);
+  pinMode(8, OUTPUT);
+  pinMode(9, OUTPUT);
+  pinMode(10, OUTPUT);
+  pinMode(11, OUTPUT);
+}
+
+void loop()
+{
+  //MOISTURE:
+  // Apply power to the soil moisture sensor
+  digitalWrite(A0, HIGH);
+  delay(10); // Wait for 10 millisecond(s)
+  moisture = analogRead(A1);
+  // Turn off the sensor to reduce metal corrosion
+  // over time
+  
+  //Les verdi til switch lyd sensory
+  SENSORVERDI = analogRead(A3);
+  analogWrite(6, UTPUTVERDI);
+  
+  digitalWrite(A0, LOW);
+  Serial.println(TOERRTERSKEL);
+  Serial.println(moisture);
+  digitalWrite(8, LOW);
+  digitalWrite(9, LOW);
+  digitalWrite(10, LOW);
+  digitalWrite(11, LOW);
+  digitalWrite(12, LOW);
+  
+  //SWITCH:
+  // read the value from the sensor
+  TOERRTERSKEL = analogRead(A2);
+  
+  //Toerr og vaatterskellys
+  if (moisture < TOERRTERSKEL) {
+    digitalWrite(8, HIGH);
+    lydPaa = true;
+    
+  } else {
+    digitalWrite(8, LOW);
+    lydPaa = false;
+    
+  }
+   if (moisture > VAATTERSKEL) {
+    digitalWrite(10, HIGH);
+    lydPaa = true;
+     
+  } else {
+     digitalWrite(10, LOW);
+     lydPaa = false;
+     
+    }
+  delay(100); // Wait for 100 millisecond(s)
+  //Sjekker switch rotering
+  Serial.println(SENSORVERDI);
+
+if(lydPaa&&SENSORVERDI >LYDTERSKEL){lydvarsel();}
+}
+
+void lydvarsel(){
+  for (int thisNote = 0; thisNote < ANTALL_NOTER; thisNote++) {
+
+      // to calculate the note duration, take one second
+      // divided by the note type.
+      //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
+      int noteDuration = 1000 / noteDurations[thisNote];
+      tone(7, melody[thisNote], noteDuration);
+
+      // to distinguish the notes, set a minimum time between them.
+      // the note's duration + 30% seems to work well:
+      int pauseBetweenNotes = noteDuration * 1.30;
+      delay(pauseBetweenNotes);
+      // stop the tone playing:
+      noTone(7);
+    }
+}
