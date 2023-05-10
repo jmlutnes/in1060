@@ -177,8 +177,8 @@ if((lydPaa || lydPaaToerr)&&(SENSORVERDI >LYDTERSKEL)){
 }
 
 void lydvarsel(){
-for(int = i; i<ANTALL_LYDAVSPILLINGER; i++)
-if(!(lydPaa || lydPaaToerr)||(SENSORVERDI <LYDTERSKEL){break;};
+for(int i = 0; i<ANTALL_LYDAVSPILLINGER; i++){
+if(!(lydPaa || lydPaaToerr)||(SENSORVERDI <LYDTERSKEL)){break;};
   for (int thisNote = 0; thisNote < ANTALL_NOTER; thisNote++) {
       // to calculate the note duration, take one second
       // divided by the note type.
@@ -192,5 +192,6 @@ if(!(lydPaa || lydPaaToerr)||(SENSORVERDI <LYDTERSKEL){break;};
       delay(pauseBetweenNotes);
       // stop the tone playing:
       noTone(7);
+      }
     }
 }
