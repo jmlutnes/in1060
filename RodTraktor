@@ -51,6 +51,7 @@
 #define NOTE_B7  3951
 #define NOTE_C8  4186
 
+int ANTALL_LYDAVSPILLINGER = 4;
 int ANTALL_NOTER = 41;
 
 // notes in the melody:
@@ -176,8 +177,9 @@ if((lydPaa || lydPaaToerr)&&(SENSORVERDI >LYDTERSKEL)){
 }
 
 void lydvarsel(){
+for(int = i; i<ANTALL_LYDAVSPILLINGER; i++)
+if(!(lydPaa || lydPaaToerr)||(SENSORVERDI <LYDTERSKEL){break;};
   for (int thisNote = 0; thisNote < ANTALL_NOTER; thisNote++) {
-
       // to calculate the note duration, take one second
       // divided by the note type.
       //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
