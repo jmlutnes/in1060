@@ -1,5 +1,3 @@
-//C++
-//
 #define NOTE_F3  175
 #define NOTE_G3  196
 #define NOTE_B3  247
@@ -53,12 +51,12 @@
 #define NOTE_B7  3951
 #define NOTE_C8  4186
 
-int ANTALL_LYDAVSPILLINGER = 4;
-
 int ANTALL_NOTER = 41;
 
 // notes in the melody:
 int melody[] = {
+  //NOTE_C4, NOTE_F4, NOTE_G4, NOTE_C4, NOTE_F4, NOTE_G4,
+  //NOTE_D4, NOTE_AS4, NOTE_A4, NOTE_D4, NOTE_AS4, NOTE_A4,
   NOTE_G4,NOTE_F4,NOTE_G4,NOTE_C5,
     NOTE_G4,NOTE_F4,NOTE_G4,NOTE_C5,
   NOTE_A4, NOTE_G4, NOTE_A4, NOTE_D5,
@@ -91,11 +89,12 @@ int noteDurations[] = {
 // Sensorer - vann
 int moisture = 0;
 int TOERRTERSKEL;
-int VAATTERSKEL = 800;
+int VAATTERSKEL = 700;
 int LYDTERSKEL = 500;
 int UTPUTVERDI = 500;
 int SENSORVERDI = 0;
 bool lydPaa = false;
+bool lydPaaToerr = false;
 
 void setup()
 {
@@ -109,7 +108,6 @@ void setup()
   pinMode(A3, INPUT);
   
   pinMode(6,OUTPUT);
-  
   //Lydutgang
   pinMode(7, OUTPUT);
   
@@ -124,11 +122,9 @@ void loop()
 {
   //MOISTURE:
   // Apply power to the soil moisture sensor
-  
   digitalWrite(A0, HIGH);
   delay(10); // Wait for 10 millisecond(s)
   moisture = analogRead(A1);
-  
   // Turn off the sensor to reduce metal corrosion
   // over time
   
@@ -137,7 +133,9 @@ void loop()
   analogWrite(6, UTPUTVERDI);
   
   digitalWrite(A0, LOW);
+  Serial.print("Toerrterkel: ");
   Serial.println(TOERRTERSKEL);
+  Serial.print("Moisture: ");
   Serial.println(moisture);
   digitalWrite(8, LOW);
   digitalWrite(9, LOW);
@@ -152,11 +150,11 @@ void loop()
   //Toerr og vaatterskellys
   if (moisture < TOERRTERSKEL) {
     digitalWrite(8, HIGH);
-    lydPaa = true;
+    lydPaaToerr = true;
     
   } else {
     digitalWrite(8, LOW);
-    lydPaa = false;
+    lydPaaToerr = false;
     
   }
    if (moisture > VAATTERSKEL) {
@@ -172,12 +170,14 @@ void loop()
   //Sjekker switch rotering
   Serial.println(SENSORVERDI);
 
-if(lydPaa&&SENSORVERDI >LYDTERSKEL){lydvarsel();}
+if((lydPaa || lydPaaToerr)&&(SENSORVERDI >LYDTERSKEL)){
+  lydvarsel();
+  }
 }
 
 void lydvarsel(){
-for(int i = 0; i<ANTALL_LYDAVSPILLINGER; i++){
   for (int thisNote = 0; thisNote < ANTALL_NOTER; thisNote++) {
+
       // to calculate the note duration, take one second
       // divided by the note type.
       //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
@@ -190,6 +190,5 @@ for(int i = 0; i<ANTALL_LYDAVSPILLINGER; i++){
       delay(pauseBetweenNotes);
       // stop the tone playing:
       noTone(7);
-      }
     }
 }
