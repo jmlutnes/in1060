@@ -51,6 +51,15 @@
 #define NOTE_B7  3951
 #define NOTE_C8  4186
 
+//Touch sensor
+const int SENSOR_PIN = 6; // the Arduino's input pin that connects to the sensor's SIGNAL pin 
+
+// Variables will change:
+int lastState = LOW;      // the previous state from the input pin
+int currentState;         // the current reading from the input pin
+//Touch sensor variabler end
+
+//Melody variabler
 int ANTALL_LYDAVSPILLINGER = 4;
 int ANTALL_NOTER = 41;
 
@@ -92,21 +101,23 @@ int moisture = 0;
 int TOERRTERSKEL;
 int VAATTERSKEL = 700;
 int LYDTERSKEL = 500;
-int UTPUTVERDI = 500;
-int SENSORVERDI = 0;
+
 bool lydPaa = false;
 bool lydPaaToerr = false;
 
 void setup()
 {
+  //Touch sensor
+  //initialize the Arduino's pin as aninput
+  pinMode(SENSOR_PIN, INPUT);
+  //Touch sensor end
+  
   pinMode(A0, OUTPUT);
   pinMode(A1, INPUT);
   
   //Switch
   pinMode(A2, INPUT);
   
-  //Switch rotering
-  pinMode(A3, INPUT);
   
   pinMode(6,OUTPUT);
   //Lydutgang
@@ -129,9 +140,7 @@ void loop()
   // Turn off the sensor to reduce metal corrosion
   // over time
   
-  //Les verdi til switch lyd sensory
-  SENSORVERDI = analogRead(A3);
-  analogWrite(6, UTPUTVERDI);
+  //Les verdi til switch lyd sensory  
   
   digitalWrite(A0, LOW);
   Serial.print("Toerrterkel: ");
@@ -167,9 +176,21 @@ void loop()
      lydPaa = false;
      
     }
+   // Touch sensor
+  currentState = digitalRead(SENSOR_PIN);
+
+  if(lastState == LOW && currentState == HIGH)
+    Serial.println("The sensor is touched");
+  	lydPaa = false;
+  	lydPaaToerr = false;
+
+  // save the the last state
+  lastState = currentState;
+  //Touch sensor end
+  
   delay(100); // Wait for 100 millisecond(s)
-  //Sjekker switch rotering
-  Serial.println(SENSORVERDI);
+  
+ 
 
 if((lydPaa || lydPaaToerr)&&(SENSORVERDI >LYDTERSKEL)){
   lydvarsel();
