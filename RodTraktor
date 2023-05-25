@@ -104,13 +104,6 @@ bool phVarsling = false;
 const int temperatur = A5;
 
 
-//pH sensor
-unsigned long int avgValue;  //Store the average value of the sensor feedback
-float b;
-int buf[10],temp;
-float phValue;
-float tmpphValue;
-
 void setup()
 {
   pinMode(A0, OUTPUT);
@@ -160,7 +153,6 @@ void loop()
   Serial.println(SENSORVERDI);
   
   tempSensor();
-  //ph();
 
 if((lydPaa || lydPaaToerr || phVarsling)&&(SENSORVERDI >LYDTERSKEL)){
   lydvarsel();
@@ -187,8 +179,6 @@ if(!(lydPaa || lydPaaToerr || phVarsling)||(SENSORVERDI <LYDTERSKEL)){break;};
     }
 }
   
-//pH-sensor bruker kode hentet fra:
-//https://how2electronics.com/ph-meter-using-ph-sensor-arduino-oled/
 void moistureMethod(){
   //MOISTURE:
   // Apply power to the soil moisture sensor
@@ -200,8 +190,6 @@ void moistureMethod(){
   
   //Les verdi til switch lyd sensory
   SENSORVERDI = analogRead(A3);
-  
-  
   
   digitalWrite(A0, LOW);
   Serial.print("Toerrterkel: ");
@@ -231,6 +219,7 @@ void moistureMethod(){
      
     }
 }
+
 //Kode til temperatursensor har hentet kode fra:
 //https://www.javatpoint.com/arduino-temperature-sensor
 void tempSensor(){
@@ -249,46 +238,4 @@ void tempSensor(){
       digitalWrite(5, LOW);
       phVarsling = false;
       }
-
 }
-
-void ph(){
-  for(int i=0;i<10;i++)       //Get 10 sample value from the sensor for smooth the value
-  { 
-    buf[i]=analogRead(A5);
-    delay(10);
-  }
-  for(int i=0;i<9;i++)        //sort the analog from small to large
-  {
-    for(int j=i+1;j<10;j++)
-    {
-      if(buf[i]>buf[j])
-      {
-        temp=buf[i];
-        buf[i]=buf[j];
-        buf[j]=temp;
-      }
-    }
-  }
-  
-  for(int i=2;i<8;i++) {                     //take the average value of 6 center sample
-    avgValue+=buf[i];
-  }
-  tmpphValue=(float)avgValue*5.0/1024/6; //convert the analog into millivolt
-  tmpphValue=3.5*tmpphValue;                      //convert the millivolt into pH value
-  phValue = tmpphValue;
-  if(phValue > 9){
-  	digitalWrite(5, HIGH);
-	phVarsling = true;
-    Serial.print("    pH:");  
-  	Serial.print(phValue,2);
-  	Serial.println(" ");
-  	
-  }
-  else{
-  phVarsling = false;
-    digitalWrite(5, LOW);
-  }
-
-  }
-
