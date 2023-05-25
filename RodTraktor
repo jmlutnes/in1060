@@ -55,6 +55,8 @@ int ANTALL_LYDAVSPILLINGER = 4;
 int ANTALL_NOTER = 41;
 
 // notes in the melody:
+// Melodi har kode fra:
+// https://docs.arduino.cc/built-in-examples/digital/toneMelody
 int melody[] = {
 
   NOTE_G4,NOTE_F4,NOTE_G4,NOTE_C5,
@@ -93,6 +95,7 @@ int VAATTERSKEL = 700;
 int LYDTERSKEL = 500;
 int UTPUTVERDI = 500;
 int SENSORVERDI = 0;
+
 bool lydPaa = false;
 bool lydPaaToerr = false;
 bool phVarsling = false;
@@ -132,10 +135,7 @@ void setup()
   pinMode(10, OUTPUT);
   pinMode(11, OUTPUT);
   
-  
-  //pH sensor
-  pinMode(13,OUTPUT);
-  //pinMode(A5, INPUT);
+
   
 }
 
@@ -174,7 +174,7 @@ if(!(lydPaa || lydPaaToerr || phVarsling)||(SENSORVERDI <LYDTERSKEL)){break;};
       // to calculate the note duration, take one second
       // divided by the note type.
       //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
-      int noteDuration = 1000 / noteDurations[thisNote];
+      int noteDuration = 10000 / noteDurations[thisNote];
       tone(7, melody[thisNote], noteDuration);
 
       // to distinguish the notes, set a minimum time between them.
@@ -231,7 +231,8 @@ void moistureMethod(){
      
     }
 }
-
+//Kode til temperatursensor har hentet kode fra:
+//https://www.javatpoint.com/arduino-temperature-sensor
 void tempSensor(){
 	int Temp = analogRead(temperatur);
   	float volts = (Temp / 965.0) * 5;  
