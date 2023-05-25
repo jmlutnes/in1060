@@ -1,4 +1,3 @@
-//TinkerCad: https://www.tinkercad.com/things/e4g3fsX33c8-copy-of-rodtraktorarduino/editel?sharecode=ehtPUEh1Kwnwm8NKuhvlZTIpzC_jOTFWU64ui7Y8VRs
 #define NOTE_F3  175
 #define NOTE_G3  196
 #define NOTE_B3  247
@@ -159,14 +158,14 @@ void loop()
   
   ph();
 
-if((lydPaa || lydPaaToerr)&&(SENSORVERDI >LYDTERSKEL)){
+if((lydPaa || lydPaaToerr || phVarsling)&&(SENSORVERDI >LYDTERSKEL)){
   lydvarsel();
   }
 }
 
 void lydvarsel(){
 for(int i = 0; i<ANTALL_LYDAVSPILLINGER; i++){
-if(!(lydPaa || lydPaaToerr)||(SENSORVERDI <LYDTERSKEL)){break;};
+if(!(lydPaa || lydPaaToerr || phVarsling)||(SENSORVERDI <LYDTERSKEL)){break;};
   for (int thisNote = 0; thisNote < ANTALL_NOTER; thisNote++) {
       // to calculate the note duration, take one second
       // divided by the note type.
@@ -176,7 +175,7 @@ if(!(lydPaa || lydPaaToerr)||(SENSORVERDI <LYDTERSKEL)){break;};
 
       // to distinguish the notes, set a minimum time between them.
       // the note's duration + 30% seems to work well:
-      int pauseBetweenNotes = noteDuration * 1.00;
+      int pauseBetweenNotes = noteDuration * 1.30;
       delay(pauseBetweenNotes);
       // stop the tone playing:
       noTone(7);
@@ -256,11 +255,15 @@ void ph(){
   phValue = tmpphValue;
   if(phValue > 9){
   	digitalWrite(5, HIGH);
-
+	phVarsling = true;
     Serial.print("    pH:");  
   	Serial.print(phValue,2);
   	Serial.println(" ");
   	
+  }
+  else{
+  phVarsling = false;
+    digitalWrite(5, LOW);
   }
 
   }
