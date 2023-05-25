@@ -55,9 +55,10 @@ int ANTALL_LYDAVSPILLINGER = 4;
 int ANTALL_NOTER = 41;
 
 // notes in the melody:
+// Melodi har kode fra:
+// https://docs.arduino.cc/built-in-examples/digital/toneMelody
 int melody[] = {
-  //NOTE_C4, NOTE_F4, NOTE_G4, NOTE_C4, NOTE_F4, NOTE_G4,
-  //NOTE_D4, NOTE_AS4, NOTE_A4, NOTE_D4, NOTE_AS4, NOTE_A4,
+
   NOTE_G4,NOTE_F4,NOTE_G4,NOTE_C5,
     NOTE_G4,NOTE_F4,NOTE_G4,NOTE_C5,
   NOTE_A4, NOTE_G4, NOTE_A4, NOTE_D5,
@@ -69,7 +70,7 @@ int melody[] = {
   	NOTE_A4, NOTE_G4, NOTE_A4, NOTE_D5,
   
   NOTE_C5, NOTE_A4, NOTE_G4, NOTE_A4, NOTE_G4, NOTE_F4,
-  NOTE_C5, NOTE_D5, NOTE_F5
+  	NOTE_C5, NOTE_D5, NOTE_F5
   
 };
 
@@ -94,8 +95,21 @@ int VAATTERSKEL = 700;
 int LYDTERSKEL = 500;
 int UTPUTVERDI = 500;
 int SENSORVERDI = 0;
+
 bool lydPaa = false;
 bool lydPaaToerr = false;
+bool phVarsling = false;
+
+//tmp
+const int temperatur = A5;
+
+
+//pH sensor
+unsigned long int avgValue;  //Store the average value of the sensor feedback
+float b;
+int buf[10],temp;
+float phValue;
+float tmpphValue;
 
 void setup()
 {
@@ -113,14 +127,69 @@ void setup()
   pinMode(7, OUTPUT);
   
   Serial.begin(9600);
+  //LED-lysene
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
   pinMode(8, OUTPUT);
   pinMode(9, OUTPUT);
   pinMode(10, OUTPUT);
   pinMode(11, OUTPUT);
+  
+
+  
 }
 
 void loop()
 {
+  
+  //LED
+  //digitalWrite(5, LOW);
+  digitalWrite(6, LOW);
+  digitalWrite(8, LOW);
+  digitalWrite(9, LOW);
+  digitalWrite(10, LOW);
+  digitalWrite(11, LOW);
+  digitalWrite(12, LOW);
+
+  
+  moistureMethod();
+  
+  delay(100); // Wait for 100 millisecond(s)
+  
+  //Sjekker switch rotering
+  Serial.println(SENSORVERDI);
+  
+  tempSensor();
+  //ph();
+
+if((lydPaa || lydPaaToerr || phVarsling)&&(SENSORVERDI >LYDTERSKEL)){
+  lydvarsel();
+  }
+}
+
+void lydvarsel(){
+for(int i = 0; i<ANTALL_LYDAVSPILLINGER; i++){
+if(!(lydPaa || lydPaaToerr || phVarsling)||(SENSORVERDI <LYDTERSKEL)){break;};
+  for (int thisNote = 0; thisNote < ANTALL_NOTER; thisNote++) {
+      // to calculate the note duration, take one second
+      // divided by the note type.
+      //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
+      int noteDuration = 10000 / noteDurations[thisNote];
+      tone(7, melody[thisNote], noteDuration);
+
+      // to distinguish the notes, set a minimum time between them.
+      // the note's duration + 30% seems to work well:
+      int pauseBetweenNotes = noteDuration * 1.30;
+      delay(pauseBetweenNotes);
+      // stop the tone playing:
+      noTone(7);
+      }
+    }
+}
+  
+//pH-sensor bruker kode hentet fra:
+//https://how2electronics.com/ph-meter-using-ph-sensor-arduino-oled/
+void moistureMethod(){
   //MOISTURE:
   // Apply power to the soil moisture sensor
   digitalWrite(A0, HIGH);
@@ -131,21 +200,15 @@ void loop()
   
   //Les verdi til switch lyd sensory
   SENSORVERDI = analogRead(A3);
-  analogWrite(6, UTPUTVERDI);
+  
+  
   
   digitalWrite(A0, LOW);
   Serial.print("Toerrterkel: ");
   Serial.println(TOERRTERSKEL);
   Serial.print("Moisture: ");
   Serial.println(moisture);
-  digitalWrite(8, LOW);
-  digitalWrite(9, LOW);
-  digitalWrite(10, LOW);
-  digitalWrite(11, LOW);
-  digitalWrite(12, LOW);
-  
-  //SWITCH:
-  // read the value from the sensor
+// read the value from the sensor
   TOERRTERSKEL = analogRead(A2);
   
   //Toerr og vaatterskellys
@@ -167,31 +230,65 @@ void loop()
      lydPaa = false;
      
     }
-  delay(100); // Wait for 100 millisecond(s)
-  //Sjekker switch rotering
-  Serial.println(SENSORVERDI);
+}
+//Kode til temperatursensor har hentet kode fra:
+//https://www.javatpoint.com/arduino-temperature-sensor
+void tempSensor(){
+	int Temp = analogRead(temperatur);
+  	float volts = (Temp / 965.0) * 5;  
+  	float celcius = (volts - 0.5) * 100;  
+  	Serial.print("    TMP:");  
+      Serial.print(celcius);
+      Serial.println(" ");
+    if(celcius < 20){
+      digitalWrite(5, HIGH);
+      delay(10);
+      phVarsling = true;
+      
+    }else{
+      digitalWrite(5, LOW);
+      phVarsling = false;
+      }
 
-if((lydPaa || lydPaaToerr)&&(SENSORVERDI >LYDTERSKEL)){
-  lydvarsel();
-  }
 }
 
-void lydvarsel(){
-for(int i = 0; i<ANTALL_LYDAVSPILLINGER; i++){
-if(!(lydPaa || lydPaaToerr)||(SENSORVERDI <LYDTERSKEL)){break;};
-  for (int thisNote = 0; thisNote < ANTALL_NOTER; thisNote++) {
-      // to calculate the note duration, take one second
-      // divided by the note type.
-      //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
-      int noteDuration = 1000 / noteDurations[thisNote];
-      tone(7, melody[thisNote], noteDuration);
-
-      // to distinguish the notes, set a minimum time between them.
-      // the note's duration + 30% seems to work well:
-      int pauseBetweenNotes = noteDuration * 1.30;
-      delay(pauseBetweenNotes);
-      // stop the tone playing:
-      noTone(7);
+void ph(){
+  for(int i=0;i<10;i++)       //Get 10 sample value from the sensor for smooth the value
+  { 
+    buf[i]=analogRead(A5);
+    delay(10);
+  }
+  for(int i=0;i<9;i++)        //sort the analog from small to large
+  {
+    for(int j=i+1;j<10;j++)
+    {
+      if(buf[i]>buf[j])
+      {
+        temp=buf[i];
+        buf[i]=buf[j];
+        buf[j]=temp;
       }
     }
-}
+  }
+  
+  for(int i=2;i<8;i++) {                     //take the average value of 6 center sample
+    avgValue+=buf[i];
+  }
+  tmpphValue=(float)avgValue*5.0/1024/6; //convert the analog into millivolt
+  tmpphValue=3.5*tmpphValue;                      //convert the millivolt into pH value
+  phValue = tmpphValue;
+  if(phValue > 9){
+  	digitalWrite(5, HIGH);
+	phVarsling = true;
+    Serial.print("    pH:");  
+  	Serial.print(phValue,2);
+  	Serial.println(" ");
+  	
+  }
+  else{
+  phVarsling = false;
+    digitalWrite(5, LOW);
+  }
+
+  }
+
