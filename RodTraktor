@@ -1,6 +1,12 @@
 #include "Wire.h"
 #include <MPU6050_light.h>
+// Temperatur
+#include "DHT.h"
 
+#define DHTPIN 3
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+//End temp
 MPU6050 mpu(Wire);
 
 //Definerer noter til lyd
@@ -53,7 +59,7 @@ int noteDurations[] = {
 // Sensorer - vann
 int moisture = 0;
 int TOERRTERSKEL;
-int VAATTERSKEL = 245;
+int VAATTERSKEL = 70;
 
 //Terskel for naar lyd skal skrus av eller paa
 int LYDTERSKEL = 500;
@@ -67,13 +73,22 @@ bool phVarsling = false;
 //Accelerator deteksjon
 bool lydVerdiEndret = false;
 //tmp
-const int temperatur = A5;
+
 
 
 void setup()
 {
+  Serial.begin(9600);
+  //temp
+  dht.begin();
+  //temp end
+
  Wire.begin();
- //byte status = mpu.begin();
+  byte status = mpu.begin();
+  Serial.println(status);
+  while(status!=0){ } // stop everything if could not connect to MPU6050
+  mpu.calcOffsets(); // gyro and accelero
+  pinMode(A5, INPUT);
   pinMode(A0, OUTPUT);
   pinMode(A1, INPUT);
   
@@ -88,7 +103,7 @@ void setup()
   //Lydutgang
   pinMode(7, OUTPUT);
   
-  Serial.begin(9600);
+  
   //LED-lysene
   pinMode(5, OUTPUT);
   pinMode(6, OUTPUT);
@@ -101,6 +116,17 @@ void setup()
 
 void loop()
 {
+   mpu.update();
+  Serial.println(mpu.getAngleY());
+  
+  if(abs(mpu.getAngleY()) > 40){
+    Serial.println("Motion detected");
+    if(lydVerdiEndret)
+    {lydVerdiEndret = false;}
+    else
+    {lydVerdiEndret = true;}
+    delay(100);
+  }
   //LED
   
   digitalWrite(6, LOW);
@@ -148,6 +174,7 @@ void moistureMethod(){
   digitalWrite(A0, HIGH);
   delay(10); // Wait for 10 millisecond(s)
   moisture = analogRead(A1);
+  float moisture_percentage = ( 100 - ( (moisture/1023.00) * 100 ) );
   // Turn off the sensor to reduce metal corrosion
   // over time
   
@@ -158,12 +185,12 @@ void moistureMethod(){
   Serial.print("Toerrterkel: ");
   Serial.println(TOERRTERSKEL);
   Serial.print("Moisture: ");
-  Serial.println(moisture);
+  Serial.println(moisture_percentage);
 // read the value from the sensor
-  TOERRTERSKEL = analogRead(A2);
+  TOERRTERSKEL = (analogRead(A2))/10;
   
   //Toerr og vaatterskellys
-  if (moisture > TOERRTERSKEL) {
+  if (moisture_percentage < TOERRTERSKEL) {
     digitalWrite(8, HIGH);
     lydPaaToerr = true;
     
@@ -172,7 +199,7 @@ void moistureMethod(){
     lydPaaToerr = false;
     
   }
-   if (moisture < VAATTERSKEL) {
+   if (moisture_percentage > VAATTERSKEL) {
     digitalWrite(10, HIGH);
     lydPaa = true;
      
@@ -186,13 +213,21 @@ void moistureMethod(){
 //Kode til temperatursensor har hentet kode fra:
 //https://www.javatpoint.com/arduino-temperature-sensor
 void tempSensor(){
-	int Temp = analogRead(temperatur);
-  	float volts = (Temp / 965.0) * 5;  
+   // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+  
+  Serial.println(t);
+  
+  delay(200);
+
+/*
+	int LYS = analogRead(A5);
+  	float volts = (LYS / 965.0) * 5;  
   	float celcius = (volts - 0.5) * 100;  
-  	Serial.print("    TMP:");  
-      Serial.print(Temp);
+  	Serial.print("    LYS:");  
+      Serial.print(LYS);
       Serial.println(" ");
-    if(celcius < 15 || celcius > 30){
+    if(LYS < 100 || LYS > 500){
       digitalWrite(5, HIGH);
       delay(1000);
       phVarsling = true;
@@ -201,4 +236,5 @@ void tempSensor(){
       digitalWrite(5, LOW);
       phVarsling = false;
       }
+      */
 }
