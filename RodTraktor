@@ -118,9 +118,11 @@ void loop()
 {
    mpu.update();
   Serial.println(mpu.getAngleY());
-  
+  Serial.print("Acceleratorverdi: ");
+  Serial.println(lydVerdiEndret);
   if(abs(mpu.getAngleY()) > 40){
     Serial.println("Motion detected");
+    
     if(lydVerdiEndret)
     {lydVerdiEndret = false;}
     else
