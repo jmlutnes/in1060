@@ -1,13 +1,19 @@
+//Henter fra bibliotek til Accelerometer
 #include "Wire.h"
 #include <MPU6050_light.h>
-// Temperatur
+//bibliotek til temperatursensor
 #include "DHT.h"
 
-#define DHTPIN 3
-#define DHTTYPE DHT11
-DHT dht(DHTPIN, DHTTYPE);
-//End temp
+
+//Definerer temperaturvariabler
+#define DHTPIN 3 //Pin som temperaturen er knyttet til
+#define DHTTYPE DHT11 //DHT typen er 11
+DHT dht(DHTPIN, DHTTYPE); //Setter pin og pintypen
+
+
+//Accelerometer
 MPU6050 mpu(Wire);
+
 
 //Definerer noter til lyd
 #define NOTE_F4  349
@@ -19,212 +25,182 @@ MPU6050 mpu(Wire);
 
 
 int ANTALL_LYDAVSPILLINGER = 1;
-int ANTALL_NOTER = 16;
-
+int ANTALL_NOTER = 8;
 // metode for melodi
 // Melodi har kode fra:
 // https://docs.arduino.cc/built-in-examples/digital/toneMelody
 int melody[] = {
-
+//Forkortet versjon av fullstendig låt
   NOTE_G4, NOTE_F4 ,NOTE_G4, NOTE_C5,
     NOTE_G4, NOTE_F4, NOTE_G4, NOTE_C5,
-  NOTE_A4, NOTE_G4, NOTE_A4, NOTE_D5,
-  	NOTE_A4, NOTE_G4, NOTE_A4, NOTE_D5,
-  
-  /*NOTE_G4, NOTE_F4, NOTE_G4, NOTE_C5,
-    NOTE_G4, NOTE_F4, NOTE_G4, NOTE_C5,
-  NOTE_A4, NOTE_G4, NOTE_A4, NOTE_D5,
-  	NOTE_A4, NOTE_G4, NOTE_A4, NOTE_D5,
-  
-  NOTE_C5, NOTE_A4, NOTE_G4, NOTE_A4, NOTE_G4, NOTE_F4,
-  	NOTE_C5, NOTE_D5, NOTE_F5
-  */
 };
-
-// note durations: 4 = quarter note, 8 = eighth note, etc.:
+// Notene varer: 4 = quarter note, 8 = eighth note, etc.:
 // Hver note i melodien sin lengde
 int noteDurations[] = {
   4, 6, 4, 2,
   4, 6, 4, 2,
-  4, 6, 4, 2,
-  4, 6, 4, 2,
-  /*
-  4, 6, 4, 2,
-  4, 6, 4, 2,
-  4, 6, 4, 2,
-  4, 6, 4, 2,
-  4, 6, 4, 6, 4, 2,
-  8, 12, 2
-  */
 };
-
-// Sensorer - vann
+// Moisture er verdien fra fuktighetssensoren
+// Toerrterskel og vaatterskel er verdiene for naar varsling skal aktiveres
 int moisture = 0;
 int TOERRTERSKEL;
 int VAATTERSKEL = 70;
-
 //Terskel for naar lyd skal skrus av eller paa
 int LYDTERSKEL = 500;
 int UTPUTVERDI = 500;
 int SENSORVERDI = 0;
-
-float ACCELERATOR;
-
-bool lydPaa = false;
+//Accelerometer
+float ACCELEROMETER;
+//Variabler for om lyden skal aktiveres
+bool lydPaaVaat= false;
 bool lydPaaToerr = false;
 bool tempVarsling = false;
-
-//tmp
-
 
 
 void setup()
 {
   Serial.begin(9600);
-  //temp
+  //Initialiserer temperatur
   dht.begin();
-  //temp end
 
- Wire.begin();
+
+//Initialiserer Accelerometer
+  Wire.begin();
+  //Stopper programmet om alt ikke er koblet til MPU6050
   byte status = mpu.begin();
   Serial.println(status);
-  while(status!=0){ } // stop everything if could not connect to MPU6050
-  mpu.calcOffsets(); // gyro and accelero
+  while(status!=0){ }
+  mpu.calcOffsets();
+  //Temp sensor
   pinMode(A5, INPUT);
+  //Moisture sensor
   pinMode(A0, OUTPUT);
   pinMode(A1, INPUT);
-  
-  //Switch
+  //Potentiometer for toerrterskel
   pinMode(A2, INPUT);
-  
-  //Switch rotering
+  //Accelerometer rotering
   pinMode(A3, INPUT);
-  
-  pinMode(6,OUTPUT);
-  
-  //Lydutgang
+  //Lydutgang - Piezo
   pinMode(7, OUTPUT);
-  
-  
   //LED-lysene
   pinMode(5, OUTPUT);
-  pinMode(6, OUTPUT);
   pinMode(8, OUTPUT);
-  pinMode(9, OUTPUT);
   pinMode(10, OUTPUT);
-  pinMode(11, OUTPUT);
-
 }
+
 
 void loop()
 {
-   mpu.update();
-Serial.print("Accelerator: ");
-  Serial.println(mpu.getAngleY());
-  ACCELERATOR = mpu.getAngleY();
-  
-  if(abs(mpu.getAngleY()) > 40){
-    Serial.println("Motion detected");
-    delay(100);
-    }
-
-  //LED
-  
-  digitalWrite(6, LOW);
+  //Skrura v alle ledlys
+  digitalWrite(5, LOW);
   digitalWrite(8, LOW);
-  digitalWrite(9, LOW);
   digitalWrite(10, LOW);
-  digitalWrite(11, LOW);
-  digitalWrite(12, LOW);
-
+  //Oppdaterer Accelerometer
+  accelerometerMethod();
+  //Sjekker sensor for fuktighet i jord
   moistureMethod();
- 
-  //Sjekker switch rotering
-  
-  
+  //Sjekker sensor for temperatur
   tempSensor();
-
-if((lydPaa || lydPaaToerr || tempVarsling)&&(ACCELERATOR > 0)){
+//Gjoer en sjekk som sjekker alle tre mulighetene for at potten gir en varsel
+//Accelerometer maa vaere under 20 for at lyden aktiveres
+//abs() brukes for at verdien skal gjelde for 20 og -20.
+if((lydPaaVaat|| lydPaaToerr || tempVarsling)&&(abs(ACCELEROMETER) < 20)){
   lydvarsel();
   }
 }
-
+//Metode som kjoere lyden saa lenge ikke potten er vridd om (Accelerometer)
+//eller at verdiene paa sensorene ikke er moett.
 void lydvarsel(){
 for(int i = 0; i<ANTALL_LYDAVSPILLINGER; i++){
-if(!(lydPaa || lydPaaToerr || tempVarsling)||(ACCELERATOR < 0)){break;};
+  //Om varslene ikke er paa lenger, eller at Accelerometer verdien er over terskelen stopper lydvarsel
+if(!(lydPaaVaat|| lydPaaToerr || tempVarsling)||(abs(ACCELEROMETER) > 20)){mpu.calcOffsets(); break;};
   for (int thisNote = 0; thisNote < ANTALL_NOTER; thisNote++) {
-      // to calculate the note duration, take one second
-      // divided by the note type.
+      //Oppdaterer accelerometerverdi
+      mpu.update();
+      Serial.print("ACCELEROMETER: ");
+      Serial.println(mpu.getAngleY());
+      ACCELEROMETER = mpu.getAngleY();
       //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
       int noteDuration = 2000 / noteDurations[thisNote];
       tone(7, melody[thisNote], noteDuration);
-
-      // to distinguish the notes, set a minimum time between them.
-      // the note's duration + 30% seems to work well:
       int pauseBetweenNotes = noteDuration * 1.30;
       delay(pauseBetweenNotes);
-      // stop the tone playing:
+      // stopp tonen fra aa spille:
       noTone(7);
       }
     }
 }
-  
+
+
+//Metode for accelerometer
+void accelerometerMethod(){
+ //Oppdaterer Accelerometer
+  mpu.update();
+  //Skriver ut Accelerometer verdi
+  Serial.print("Accelerometer: ");
+  Serial.println(mpu.getAngleY());
+  ACCELEROMETER = mpu.getAngleY();
+}
+ 
+  //Metode for fuktighet
 void moistureMethod(){
-  //MOISTURE:
-  // Apply power to the soil moisture sensor
+  // Aktiverer fuktighetssensor
   digitalWrite(A0, HIGH);
-  delay(10); // Wait for 10 millisecond(s)
+  delay(10); // venter 10ms
+  //Leser verdi til fuktighetssensor
   moisture = analogRead(A1);
+  //Konverterer verdien til ny lesbar verdi (Celcius)
   float moisture_percentage = ( 100 - ( (moisture/1023.00) * 100 ) );
-  // Turn off the sensor to reduce metal corrosion
-  // over time
-  
   //Les verdi til switch lyd sensory
   SENSORVERDI = analogRead(A3);
-  
+  //deaktiverer fuktighetssensor
   digitalWrite(A0, LOW);
+  //Skriver ut verdier paa serial
   Serial.print("Toerrterkel: ");
   Serial.println(TOERRTERSKEL);
   Serial.print("Moisture: ");
   Serial.println(moisture_percentage);
-// read the value from the sensor
+  // Leser verdi til potentiometer og gjoer den til terskel for toerrvarsling
   TOERRTERSKEL = ((analogRead(A2))/10)-10;
-  
-  //Toerr og vaatterskellys
+ 
+  //Skrur paa lys om det er for toert eller for vaatt.
+  //Gjoer dette gjennom en if sjekk for vaatterskel og toerrterskel
   if (moisture_percentage < TOERRTERSKEL) {
     digitalWrite(8, HIGH);
     lydPaaToerr = true;
-    
   } else {
     digitalWrite(8, LOW);
     lydPaaToerr = false;
-    
   }
    if (moisture_percentage > VAATTERSKEL) {
     digitalWrite(10, HIGH);
-    lydPaa = true;
-     
+    lydPaaVaat= true;
   } else {
      digitalWrite(10, LOW);
-     lydPaa = false;
-     
+     lydPaaVaat= false;
     }
 }
 
-//Kode til temperatursensor har hentet kode fra:
-//https://www.javatpoint.com/arduino-temperature-sensor
+
+//Metode for sensor for temperatur
+//Bruker biblioteket til DHT
 void tempSensor(){
-   // Read temperature as Celsius (the default)
+  //Leser temperaturen
   float t = dht.readTemperature();
+
+
+  //Skriver ut verdi
   Serial.print("Celcius: ");
   Serial.println(t);
-  if(t > 26 || t < 15){
+
+
+  //Om det er varmere enn 30 grader Celcius eller kaldere enn 15, så   aktiveres varsel og LED lys.
+  if(t > 30 || t < 15){
     tempVarsling = true;
     digitalWrite(5, HIGH);
   }else{
     tempVarsling = false;
     digitalWrite(5, LOW);
   }
-  
   delay(200);
 }
